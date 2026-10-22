@@ -699,12 +699,21 @@ reconstruct the NBA's tracking algorithm or show that the six predictor
 variables causally create defensive attention.
 
 \subsection{What the evaluation results mean}
-The cross-validation value $\rho_s=0.5300$ is Spearman's rank correlation,
-not a $p$-value and not a percentage of predictions that were correct. It
-indicates a moderately positive average association between the model's
-predicted player ordering and the players' official GRAV ordering across
-the five validation folds. The standard deviation, $0.2170$, shows that
-ranking agreement differed noticeably from fold to fold.
+Spearman's rank correlation $\rho_s$ ranges from $-1$ to $1$: $1$ means
+the two rankings have the same order, $-1$ means they have exactly
+opposite order, and $0$ indicates no monotonic rank association. It
+measures agreement in ordering, not how close predicted GRAV scores are
+to actual scores. It is not a $p$-value or a percentage of predictions
+that were correct.
+
+The cross-validation value $\rho_s=0.5300$ indicates a moderately positive
+average association between the model's predicted player ordering and the
+players' official GRAV ordering across the five validation folds. The
+standard deviation, $0.2170$, shows that ranking agreement differed
+noticeably from fold to fold. The held-out value $\rho_s=0.5754$ also
+indicates a moderately positive rank association in that separate
+35-player test set; it is a single-split estimate, not proof of
+generalizable ranking accuracy.
 
 The cross-validation MAE of $3.2905$ means that a validation prediction
 was, on average, about 3.29 GRAV points away from the observed score.
