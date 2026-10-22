@@ -1,5 +1,6 @@
 # NBA-Gravity
 [Presentation](https://docs.google.com/presentation/d/1b2G7H0UWvJVoDoXr90XjtynKeWOTNSG7Pz_RHgDoVsI/edit?slide=id.h6dbaa4e3a915987e_2_0#slide=id.h6dbaa4e3a915987e_2_0)
+[Overleaf report](https://www.overleaf.com/project/6ad7b6ddaf4f04cb33a470d0/share#91edaa8e4a034b227650f94d9b696ec924c65c2259d0d0a7)
 
 ## Fit the gravity model
 
