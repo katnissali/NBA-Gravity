@@ -1,0 +1,83 @@
+- Focus on one player, see how stats change of other players on the court with him
+- 
+
+
+
+player_stats.csv has Assists stat (AST)
+
+Defining Clutch: 
+The NBA's standard clutch situation is when the score is within 5 points during the final 5 minutes of the fourth quarter or overtime.
+
+We can use the NBA's clutch endpoint to filter for those situations.
+(LeagueDashPlayerClutch)
+
+Factors: Pts made during Clutches
+
+1. Clutch points — our primary measure
+The logic is that players who consistently score during clutch situations may pose a greater offensive threat, causing opponents to devote more defensive attention to them.
+
+Our potential proposition could be:
+
+Proposition 4: Players with greater clutch scoring production tend to have higher offensive gravity.
+
+One mathematical issue is that players have different amounts of clutch playing time.
+
+\[
+\text{Clutch PTS per 36 min}
+=\frac{\text{Clutch PTS}}{\text{Clutch MIN}}\times36
+\]
+
+This would account for playing time, although we would need a minimum clutch-minutes requirement so extremely small samples don't dominate.
+
+We could calculate:
+\[
+C_i=\frac{P_i}{M_i}\times36
+\]
+
+Where:
+- \(C_i\) = clutch points per 36 minutes for player \(i\).
+- \(P_i\) = total clutch points.
+- \(M_i\) = total clutch minutes.
+
+Adding a minimum threshold of clutch minutes of 30 to remove outliers.
+
+Our mathematical definition becomes:
+\[
+C_i =
+\begin{cases}
+\dfrac{36P_i}{M_i}, & M_i\geq 30\\[6pt]
+\text{undefined}, & M_i<30
+\end{cases}
+\]
+
+Since some players might not have a clutch factor for our regression model. We will have to exlucde those players, hence limiting our sample size.
+
+
+
+
+
+Players below the threshold will not receive a qualifying clutch scoring rate. We should never interpret their missing rate as zero.
+
+
+
+Clutch assists is a future idea. Potential issue is statistical overlap --> multicollinearity.
+
+
+
+
+-----------------------
+Timeouts:
+
+Seeing which players score and a timeout happens after/36 minutes
+
+Proposition 5
+Players with higher opposing timeout-response rates tend to have greater offensive gravity.
+
+\[
+\boxed{T_i=\frac{36N_i}{M_i}}
+\]
+
+Where:
+- \(T_i\): Opposing timeout responses per 36 minutes for player \(i\).
+- \(N_i\): Number of opposing timeouts occurring immediately after player \(i\)'s made field goals.
+- \(M_i\): Total regular-season minutes played by player \(i\).
