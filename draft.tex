@@ -698,6 +698,37 @@ evaluation or establish performance on a new season.
 reconstruct the NBA's tracking algorithm or show that the six predictor
 variables causally create defensive attention.
 
+\subsection{What the evaluation results mean}
+The cross-validation value $\rho_s=0.5300$ is Spearman's rank correlation,
+not a $p$-value and not a percentage of predictions that were correct. It
+indicates a moderately positive average association between the model's
+predicted player ordering and the players' official GRAV ordering across
+the five validation folds. The standard deviation, $0.2170$, shows that
+ranking agreement differed noticeably from fold to fold.
+
+The cross-validation MAE of $3.2905$ means that a validation prediction
+was, on average, about 3.29 GRAV points away from the observed score.
+Lower MAE is better. The reported $\pm0.2153$ is the sample standard
+deviation of the five fold-specific MAEs; it is not a confidence interval.
+
+The mean cross-validation $R^2$ of $0.2770$ indicates that, averaged over
+the validation folds, the model reduced squared prediction error by about
+27.7\% relative to predicting that fold's mean GRAV for every player.
+The fold standard deviation, $0.2887$, is large relative to the mean,
+showing substantial variation; individual fold $R^2$ values can be
+negative. Thus the average does not imply equally good performance in
+every fold.
+
+These cross-validation summaries describe five validation subsets within
+the 140-player training sample. Separately, on the untouched 35-player
+test set, the model had MAE $2.8560$, $R^2=0.3734$, and
+$\rho_s=0.5754$. These are distinct evaluations, not additional folds
+to combine with the cross-validation averages. Both suggest some
+predictive and ranking signal in this sample, but the small test set and
+fold-to-fold variation mean the evidence is preliminary and does not
+establish reliable performance on future seasons. The model's associations
+also do not show that the predictors cause gravity.
+
 \section{Presentation outline: October 22, 2 p.m.}
 \begin{center}
 \small
@@ -716,10 +747,12 @@ variables causally create defensive attention.
 \bottomrule
 \end{tabularx}
 \end{center}
-\textbf{Presentation rule:} Distinguish the single 35-player held-out
-results from five-fold cross-validation on the training players. The
-fold variation is substantial; do not claim reliable superiority over
-the benchmark or imply causal effects.
+\textbf{Presentation rule:} Explain that $\rho_s$ measures rank
+association, MAE measures average error in GRAV points, and $R^2$
+compares squared error with a mean-prediction baseline. Distinguish the
+single 35-player held-out results from five-fold cross-validation on the
+training players. The fold variation is substantial; do not claim
+reliable superiority over the benchmark or imply causal effects.
 \textbf{Slide-deck review:} The linked Google Slides deck was inspected in
 view-only mode and is not yet aligned with this report. It still presents
 open-shot percentage as P1 despite that factor being deferred for lack of
