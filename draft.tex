@@ -1,0 +1,851 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.85in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,array,tabularx,longtable}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{lastpage}
+\hypersetup{colorlinks=true,urlcolor=blue!55!black,linkcolor=blue!55!black,citecolor=blue!55!black}
+\setlist[itemize]{leftmargin=*,itemsep=2pt,topsep=3pt}
+\setlist[enumerate]{leftmargin=*,itemsep=3pt,topsep=3pt}
+\renewcommand{\arraystretch}{1.18}
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+\titleformat{\section}{\large\bfseries\color{blue!35!black}}{\thesection.}{0.55em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.55em}{}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small MATH 440 | Group 5}
+\fancyhead[R]{\small NBA Gravity Mini-project 2}
+\fancyfoot[C]{\small Page \thepage\ of \pageref{LastPage}}
+\newcommand{\todo}[1]{\textcolor{red!65!black}{\textbf{[TO CONFIRM:} #1\textbf{]}}}
+\newcommand{\draft}[1]{\textcolor{blue!50!black}{\textbf{[PROPOSED:} #1\textbf{]}}}
+\newcommand{\nba}{\mathrm{NBA}}
+
+\begin{document}
+\begin{center}
+    {\LARGE\bfseries Investigating NBA Offensive Gravity}\\[5pt]
+    {\large Mini-project 2 --- Shared Mathematical and Research Plan}\\[8pt]
+    \textbf{MATH 440 | Group 5 | Josue and Emma}\\[3pt]
+    \textit{Working draft v0.7 --- October 22, 2026}\\[3pt]
+    \textbf{Next presentation: Thursday, October 22, 2026, at 2:00 p.m.}
+\end{center}
+
+\noindent\colorbox{blue!5}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{\textbf{Purpose and current status.} This working report documents the research question, six measured predictor variables, source provenance, mathematical definitions, verified aggregation and dataset integration, and preliminary OLS evaluation. The final player-level file \texttt{player\_gravity\_model\_data.csv} contains 234 official GRAV players, including 175 with all six predictors. Results include one held-out split and five-fold cross-validation on the training set; substantial fold-to-fold variation warrants cautious interpretation. Blue labels denote proposals; red labels denote items requiring confirmation.}}
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\medskip
+
+\section{Research question, definitions, and propositions}
+\textbf{Research question:} Can publicly available NBA statistics be combined into
+an interpretable mathematical model that estimates player offensive gravity,
+and how closely do the predictions and ranking agree with the NBA's official
+2025--26 regular-season Player Gravity metric?
+
+\textbf{Offensive gravity:} Defensive attention that a player attracts beyond
+what would ordinarily be expected from location and playing context. The NBA's
+tracking-based GRAV metric measures defensive pressure above expectation
+\cite{nba-gravity-intro,nba-gravity-board}. Our model predicts that
+metric from publicly accessible performance statistics; it does not reproduce
+the NBA's tracking algorithm.
+
+\textbf{Working hypothesis (H):} Stronger gravity-related offensive indicators
+are associated with higher official NBA GRAV values. These propositions concern
+\emph{associations}, not demonstrated causes.
+
+\textbf{Propositions to test (in the project's official factor order):}
+\begin{enumerate}[label=\textbf{P\arabic*:}]
+\item Players with higher team offensive rating ON/OFF differentials tend to
+have higher official GRAV scores.
+\item Players with higher \emph{teammates-only} effective field-goal percentage
+ON/OFF differentials tend to have higher official GRAV scores.
+\item Players averaging more assists per game tend to have higher official
+GRAV scores.
+\item Players with higher opponent timeout-response rates per 36 playing
+minutes tend to have higher official GRAV scores.
+\item Players scoring more points per 36 minutes in qualifying clutch
+situations tend to have higher official GRAV scores.
+\item Players with greater \emph{Offensive Win Shares (OWS)} tend to have
+higher official GRAV scores.
+\item \textbf{TBD (future factor):} A positive association between
+teammates' open-shot percentage ON/OFF differential and official GRAV will be
+considered when an operational definition and reliable tracking data are available.
+\item A model combining several suitably defined indicators gives a player
+ranking positively associated with the NBA Gravity ranking.
+\end{enumerate}
+Propositions P1--P6 correspond to six collected candidate predictors. P7
+is a deferred proposal, not a testable claim with the currently assembled
+data. P8 retains the original combined-model ranking-agreement proposition.
+Better prediction than a simple baseline is an additional \emph{evaluation
+criterion}, not a demonstrated finding.
+
+\section{Collected data: 2025--26 regular season}
+All six predictor datasets and the official NBA GRAV target concern the
+2025--26 regular season. The individual source files have now been
+\emph{combined into one player-level dataset}. An initial OLS fit,
+held-out evaluation, and five-fold cross-validation on the training set
+have been completed. Fold-to-fold variability is reported below.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{0.39\linewidth}rX@{}}
+\toprule
+\textbf{Dataset} & \textbf{Rows} & \textbf{Purpose / verified coverage}\\
+\midrule
+\texttt{player\_stats.csv} & 582 & NBA per-game statistics; the \texttt{AST} column is assists per game.\\
+\texttt{team\_stats.csv} & 30 & Original season-level team data, retained for context.\\
+\texttt{player\_on\_off\_stats.csv} & 1,362 & Earlier NBA on/off dataset; not used as either final ON/OFF predictor.\\
+\texttt{player\_off\_rating\_on\_off.csv} & 701 & Player--team observations; 661 valid ON/OFF pairs.\\
+\texttt{player\_teammate\_efg\_on\_off.csv} & 701 & Teammates-only ON/OFF eFG; 661 valid player--team pairs.\\
+\texttt{player\_timeout\_rates.csv} & 582 & Timeout-response rates using all 1,230 regular-season games.\\
+\texttt{player\_clutch\_rates.csv} & 246 & Qualifying players with at least 30 total clutch minutes.\\
+\texttt{player\_win\_shares\_with\_nba\_ids.csv} & 582 & Basketball-Reference Offensive Win Shares, matched to NBA IDs.\\
+\texttt{player\_gravity\_official.csv} & 234 & Distinct official NBA player IDs with nonmissing \texttt{GRAV}.\\
+\midrule
+\texttt{player\_on\_off\_aggregated.csv} & 602 & One row per player after ON-minutes weighting of factors 1 and 2.\\
+\texttt{player\_gravity\_model\_data.csv} & \textbf{234} & \textbf{Final merged GRAV-plus-six-factor dataset.}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The two final ON/OFF input datasets each have \textbf{701 player--team rows
+for 602 distinct players}. Among them, \textbf{87 players} have multiple
+recorded team stints. The weighted aggregation produced 602 distinct player
+records, with valid factor~1 and factor~2 values for 582 players apiece.
+Among the 234 GRAV players, \textbf{24 have multiple recorded team stints}.
+The 234 GRAV players all have both aggregated ON/OFF factors.
+
+The NBA's \texttt{GravityLeaders} endpoint supplies the official target:
+\texttt{AVGGRAVITYSCORE}, preserved as \texttt{GRAV}. The different field
+\texttt{GRAVITYSCORE} is \emph{not} used as the target. The assembled
+player-level table uses \texttt{PLAYER\_ID} as its unique join key.
+No missing factor has been replaced with zero.
+
+\textbf{Verified complete-case coverage:} factors 1, 2, 3, 4, and 6 are
+available for \textbf{234/234} GRAV players; factor 5 (clutch scoring) is
+available for \textbf{175/234}. Thus the merged file contains 234 rows,
+\textbf{175 complete six-factor observations} and 59 with a missing clutch
+measurement. This is a data-availability finding, not a regression result.
+
+\section{Official factor order and candidate variables}
+The six active predictors are indexed $j=1,\dots,6$ in the order agreed by
+the group. The proposed seventh factor, teammates' open-shot percentage, is
+\textbf{TBD} and excluded from the first regression.
+
+\small
+\begin{longtable}{@{}p{0.25\linewidth}p{0.44\linewidth}p{0.24\linewidth}@{}}
+\toprule
+\textbf{Factor} & \textbf{Candidate statistical variable} & \textbf{Collection status}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Factor} & \textbf{Candidate statistical variable} & \textbf{Collection status}\\
+\midrule
+\endhead
+1. Team offensive rating ON/OFF & $X_{i1}=\mathrm{OffRtg}_{i,\mathrm{ON}}-\mathrm{OffRtg}_{i,\mathrm{OFF}}$ (points per 100 possessions). & Aggregated; 234/234 GRAV players.\\
+\addlinespace
+2. Teammates-only eFG\% ON/OFF & $X_{i2}=100(eFG_{i,\mathrm{ON}}^{\mathrm{tm}}-eFG_{i,\mathrm{OFF}}^{\mathrm{tm}})$ (percentage points). & Aggregated; 234/234 GRAV players.\\
+\addlinespace
+3. Assists & $X_{i3}=\mathrm{AST}_{i}^{\mathrm{per\ game}}$ (assists per game; confirmed representation). & Merged; 234/234 GRAV players.\\
+\addlinespace
+4. Opponent timeout responses & $X_{i4}=36N_i/M_i$ (responses per 36 season minutes). & Merged; 234/234 GRAV players.\\
+\addlinespace
+5. Clutch scoring & $X_{i5}=36\,\mathrm{PTS}^{\mathrm{clutch}}_i/\mathrm{MIN}^{\mathrm{clutch}}_i$ (clutch points per 36 minutes). & Merged; 175/234 GRAV players.\\
+\addlinespace
+6. Offensive Win Shares & $X_{i6}=\mathrm{OWS}_i$ (season Offensive Win Shares). & Merged; 234/234 GRAV players.\\
+\addlinespace
+7. Teammate open-shot percentage ON/OFF & Potential future ON/OFF differential; definition of ``open-shot percentage'' still TBD. & Deferred; excluded from v1.\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\textbf{Terminology:} The fifth collected variable measures \emph{clutch
+scoring rate}, not ``clutch share'' or a percentage of team clutch points.
+Changing it to a share would require a different data definition and approval.
+
+\textbf{Interpretation:} All six predictors are proposed proxies for gravity.
+Offensive rating, teammate eFG, and timeout responses may be influenced by
+lineups, opposing defenses, and game context. Assists, clutch scoring, and Offensive Win Shares may measure broader offensive skill or playing time rather than
+purely defensive attention. None alone establishes causality.
+
+\section{Mathematical definitions}
+Let $i$ index a player in the final analysis sample, and let $j\in\{1,\dots,6\}$
+index the six proposed predictors in Section~3. The symbol $X_{ij}$ denotes
+the \emph{numerical value of predictor $j$ for player $i$}, before
+standardization. An ON or OFF quantity refers to the player's own team while
+that player is on or off the court. Unless otherwise specified, counts and
+rates refer to the 2025--26 regular season. For the two ON/OFF predictors, the formulas below first describe a single
+team stint. The verified aggregation rule later in this section combines
+these stints into one player-season measurement.
+
+\subsection{Factor 1: Team offensive rating ON/OFF}
+\textbf{Offensive rating (OffRtg)} is the number of team points scored per
+100 offensive possessions. For player $i$ and court-status
+$s\in\{\mathrm{ON},\mathrm{OFF}\}$, define
+\begin{equation}
+\mathrm{OffRtg}_{i,s}
+=100\frac{\mathrm{PTS}^{\mathrm{team}}_{i,s}}
+{\mathrm{POSS}^{\mathrm{team}}_{i,s}},
+\qquad \mathrm{POSS}^{\mathrm{team}}_{i,s}>0.
+\label{eq:offrtg}
+\end{equation}
+Here $\mathrm{PTS}^{\mathrm{team}}_{i,s}$ is the number of points scored by
+the player's team during condition $s$, and
+$\mathrm{POSS}^{\mathrm{team}}_{i,s}$ is its offensive-possession count in
+that condition. We use the NBA's reported \texttt{OFF\_RATING} fields from
+\texttt{TeamPlayerOnOffSummary} (\texttt{Advanced}, \texttt{Totals});
+we do not estimate those possession counts from rounded per-game data.
+The \textbf{first predictor} is
+\begin{equation}
+\boxed{X_{i1}=\mathrm{OffRtg}_{i,\mathrm{ON}}
+-\mathrm{OffRtg}_{i,\mathrm{OFF}}.}
+\label{eq:offrtg-diff}
+\end{equation}
+Its unit is \emph{team points per 100 possessions}. A positive difference
+means the observed team OffRtg is higher with player $i$ present; it does
+not establish the player's causal contribution.
+
+\subsection{Factor 2: Teammates-only eFG\% ON/OFF}
+\textbf{Effective field-goal percentage (eFG)} adjusts field-goal accuracy
+for the extra point value of a made three-pointer:
+\begin{equation}
+ eFG=\frac{\mathrm{FGM}+0.5\,\mathrm{FG3M}}{\mathrm{FGA}},
+ \qquad \mathrm{FGA}>0.
+ \label{eq:efg}
+\end{equation}
+Here \texttt{FGM} means made field goals, \texttt{FG3M} means made
+three-point field goals, and \texttt{FGA} means attempted field goals.
+The resulting eFG is a proportion: 0.55 represents 55\%.
+
+For player $i$, let $\mathrm{FGM}^{\mathrm{team}}_{i,s}$,
+$\mathrm{FG3M}^{\mathrm{team}}_{i,s}$, and
+$\mathrm{FGA}^{\mathrm{team}}_{i,s}$ denote the team's shooting totals
+in condition $s$. Let $\mathrm{FGM}^{\mathrm{self}}_i$,
+$\mathrm{FG3M}^{\mathrm{self}}_i$, and $\mathrm{FGA}^{\mathrm{self}}_i$
+denote the player's own shot totals \emph{in that team stint}. Teammates'
+ON-court efficiency excludes those personal shots:
+\begin{equation}
+\begin{split}
+ eFG^{\mathrm{tm}}_{i,\mathrm{ON}}=
+ \frac{
+ (\mathrm{FGM}^{\mathrm{team}}_{i,\mathrm{ON}}-\mathrm{FGM}^{\mathrm{self}}_i)
+ +0.5(\mathrm{FG3M}^{\mathrm{team}}_{i,\mathrm{ON}}-\mathrm{FG3M}^{\mathrm{self}}_i)
+ }{
+ \mathrm{FGA}^{\mathrm{team}}_{i,\mathrm{ON}}-\mathrm{FGA}^{\mathrm{self}}_i
+ }.
+\end{split}
+\label{eq:efg-on}
+\end{equation}
+The OFF-court team shots already exclude player $i$:
+\begin{equation}
+ eFG^{\mathrm{tm}}_{i,\mathrm{OFF}}=
+ \frac{\mathrm{FGM}^{\mathrm{team}}_{i,\mathrm{OFF}}
+ +0.5\,\mathrm{FG3M}^{\mathrm{team}}_{i,\mathrm{OFF}}}
+ {\mathrm{FGA}^{\mathrm{team}}_{i,\mathrm{OFF}}}.
+ \label{eq:efg-off}
+\end{equation}
+Both denominators must be positive. Team shooting counts come from
+\texttt{TeamPlayerOnOffDetails}; personal shooting totals come from
+\texttt{TeamPlayerDashboard}. The \textbf{second predictor} is
+\begin{equation}
+ \boxed{X_{i2}=100\left(eFG^{\mathrm{tm}}_{i,\mathrm{ON}}
+ -eFG^{\mathrm{tm}}_{i,\mathrm{OFF}}\right).}
+ \label{eq:efg-diff}
+\end{equation}
+$X_{i2}$ is measured in \emph{percentage points}. For example, a difference
+of 0.04 between the underlying eFG proportions corresponds to 4 percentage
+points, not a 4\% relative increase. The calculation excludes the focal
+player's shooting contribution from the ON value.
+
+\subsection{Factor 3: Assists}
+An \textbf{assist} is a credited pass leading directly to a teammate's made
+basket under NBA recording rules. The source
+\texttt{player\_stats.csv} contains \texttt{AST} as a \emph{per-game}
+statistic, as confirmed during data preparation. The \textbf{third
+predictor} is
+\begin{equation}
+ \boxed{X_{i3}=\mathrm{AST}^{\mathrm{per\ game}}_i.}
+ \label{eq:assists}
+\end{equation}
+Thus $X_{i3}$ is the player's season-average assists per game, with unit
+\emph{assists/game}. This representation is convenient but may favor
+players with more playing time per game. The merged file preserves the
+source's per-game representation under the column \texttt{AST\_PER\_GAME};
+we do not divide it by games a second time or convert it to per 36 minutes.
+
+\subsection{Factor 4: Opponent timeout responses}
+We define one \textbf{timeout response} for player $i$ when an opposing
+team's timeout is the \emph{next recorded play-by-play event} after that
+player's made field goal. A timeout by the shooter's team, or a timeout
+after an intervening event, does not qualify. Define $N_i$ as the season
+count of qualifying responses and $M_i$ as total regular-season minutes
+played by player $i$. The \textbf{fourth predictor} is
+\begin{equation}
+ \boxed{X_{i4}=36\frac{N_i}{M_i}},\qquad M_i>0.
+ \label{eq:timeouts}
+\end{equation}
+Its unit is \emph{opponent timeout responses per 36 playing minutes}.
+The project analyzed all 1,230 regular-season games using
+\texttt{PlayByPlayV3} and season-total player minutes. The definition
+records event order, not evidence that the player's basket caused the
+timeout.
+
+\subsection{Factor 5: Individual clutch scoring rate}
+The NBA's standard \textbf{clutch} condition is the final five minutes
+of the fourth quarter or overtime when the score difference is within
+five points. For player $i$, let $\mathrm{PTS}^{\mathrm{clutch}}_i$
+be accumulated points and $\mathrm{MIN}^{\mathrm{clutch}}_i$
+be accumulated playing minutes in those situations. The
+\textbf{fifth predictor} is
+\begin{equation}
+ \boxed{X_{i5}=36\frac{\mathrm{PTS}^{\mathrm{clutch}}_i}
+ {\mathrm{MIN}^{\mathrm{clutch}}_i}},
+ \qquad \mathrm{MIN}^{\mathrm{clutch}}_i\ge 30.
+ \label{eq:clutch}
+\end{equation}
+The unit is \emph{clutch points per 36 clutch minutes}. The 30-minute minimum reduces extremely small-sample rates. The
+saved qualifying clutch file contains 246 player rows. Of the 234 official
+GRAV players, 175 have qualifying clutch data and 59 do not. Missing
+clutch values are retained as missing, not interpreted as zero points.
+Selecting players with 30 or more clutch minutes may also introduce
+sample-selection bias, because such players have had more opportunities
+to appear in close games.
+
+\subsection{Factor 6: Offensive Win Shares}
+\textbf{Offensive Win Shares (OWS)} is a published Basketball-Reference
+estimate of the number of team wins attributable to a player's offensive
+contribution over the season. It is \emph{not} a raw count of team wins,
+team wins divided by roster size, or total Win Shares.
+Basketball-Reference defines
+\begin{equation}
+ \mathrm{WS}_i=\mathrm{OWS}_i+\mathrm{DWS}_i,
+ \label{eq:winshares}
+\end{equation}
+where $\mathrm{WS}_i$ denotes total Win Shares and $\mathrm{DWS}_i$
+denotes Defensive Win Shares. Our \textbf{sixth predictor} uses only the
+offensive component:
+\begin{equation}
+ \boxed{X_{i6}=\mathrm{OWS}_i.}
+ \label{eq:ws-predictor}
+\end{equation}
+
+\textbf{Meaning of the published calculation.} For a modern NBA season,
+Basketball-Reference describes the following methodology
+\cite{winshares}:
+\begin{align}
+ \mathrm{MO}_i & = \mathrm{PP}_i - 0.92\,\mathrm{PPP}_{L}\,\mathrm{OP}_i,
+ \label{eq:ows-marginal}\\
+ \mathrm{MPW}_{i} & =0.32\,\mathrm{PPG}_{L}
+ \left(\frac{\mathrm{Pace}_{\mathrm{team}(i)}}{\mathrm{Pace}_{L}}\right),
+ \label{eq:ows-points}\\
+ \mathrm{OWS}_i & = \frac{\mathrm{MO}_i}{\mathrm{MPW}_i}.
+ \label{eq:ows-method}
+\end{align}
+Here $\mathrm{PP}_i$ is the player's estimated \emph{points produced},
+$\mathrm{OP}_i$ is the estimated number of offensive possessions attributable
+to the player, and $\mathrm{PPP}_{L}$ is league-wide points per possession.
+$\mathrm{PPG}_{L}$ is league-wide points per game;
+$\mathrm{Pace}_{\mathrm{team}(i)}$ and $\mathrm{Pace}_{L}$ are team and
+league pace. $\mathrm{MO}_i$ is \emph{marginal offense}, and
+$\mathrm{MPW}_i$ is \emph{marginal points per win}. These equations explain
+the source metric; \textbf{our group did not independently reconstruct
+points produced, possessions, or OWS}. We extracted the published \texttt{OWS}
+values and used them as supplied. Negative OWS values are possible; they
+must not be converted to zero.
+
+\textbf{Collection and matching.} The 2025--26 values were taken from
+Basketball-Reference's advanced player statistics for the season
+\cite{br-advanced} and preserved in
+\texttt{player\_win\_shares\_with\_nba\_ids.csv}. The CSV has
+\textbf{582 distinct NBA player IDs} and includes both the
+Basketball-Reference player key (\texttt{BR\_PLAYER\_ID}) and the NBA
+player key (\texttt{PLAYER\_ID}). It retains player names, team labels,
+games, minutes and name/team matching indicators to make the identity
+mapping auditable. In the saved file, 562 names matched exactly; 9 required
+punctuation/accent normalization and 11 are recorded as verified name
+variants. The team-check field records 506 same-team matches, 72
+multi-team Basketball-Reference records, and 4 different team labels.
+These are recorded checks, not proof that every original match was
+manually verified. All \textbf{234 official GRAV players} have a matching,
+nonmissing OWS value. The final dataset stores the season OWS value as
+\texttt{OWS} without converting it to OWS per game or WS/48.
+
+OWS is a \emph{cumulative} estimate; higher values can reflect both stronger
+offensive contribution and more playing time. It is a proposed correlate
+of gravity rather than a direct tracking measurement of defensive
+attention or a demonstrated causal factor.
+
+\subsection{Factor 7: Teammate open-shot percentage (TBD)}
+This proposed seventh factor has not been collected. ``Open-shot
+percentage'' could mean the \emph{fraction of shots attempted with a
+sufficiently distant defender}, or \emph{shooting accuracy on those
+attempts}. These are distinct statistics. We will not assign it a
+numeric variable or include it in the six-predictor model until its
+meaning and the necessary ON/OFF teammate tracking data are established.
+
+\subsection{Official NBA target variable: GRAV}
+Let $Y_i$ denote player $i$'s \textbf{official Average Gravity score}
+for the 2025--26 NBA regular season. In the NBA's
+\texttt{GravityLeaders} data, the leaderboard's numeric \texttt{GRAV}
+value is \texttt{AVGGRAVITYSCORE}, and we record
+\begin{equation}
+ \boxed{Y_i=\mathrm{GRAV}_i=\mathrm{AVGGRAVITYSCORE}_i.}
+ \label{eq:grav-target}
+\end{equation}
+The official league data contains 234 players, 234 distinct NBA player
+IDs, and no missing values in this field. The reference scores range
+from approximately $-10.225$ to $16.196$ in the extracted data. The
+NBA describes its normalized gravity metric on a theoretical $-100$ to
+$100$ scale \cite{nba-gravity-intro,nba-gravity-board,nba-gravity-api}.
+Each $Y_i$ has now been joined to our candidate predictors via
+\texttt{PLAYER\_ID}. Preliminary OLS coefficients have been estimated on
+the training portion of the complete-case sample; held-out results are
+reported in Section~\ref{sec:model-evaluation}.
+
+
+\subsection{Combining ON/OFF measurements across multiple teams}
+The official GRAV dataset has one observation per player, whereas the
+ON/OFF source files have one observation per player--team combination.
+Let $i$ identify a player, let $t$ identify a team, and let
+$\mathcal{T}_i$ be the set of teams recorded for player $i$.
+For each stint, define the two recorded differences
+\begin{align}
+ d_{i1t}&=\mathrm{OffRtg}_{i,t,\mathrm{ON}}
+           -\mathrm{OffRtg}_{i,t,\mathrm{OFF}},\label{eq:stint-off}\\
+ d_{i2t}&=100\bigl(eFG^{\mathrm{tm}}_{i,t,\mathrm{ON}}
+           -eFG^{\mathrm{tm}}_{i,t,\mathrm{OFF}}\bigr).
+           \label{eq:stint-efg}
+\end{align}
+The first difference has units of points per 100 possessions; the second
+has units of percentage points. Define $m_{it}^{(j)}$ as player $i$'s
+ON-court minutes for team $t$ in predictor $j$'s source file, for
+$j\in\{1,2\}$. Let $\mathcal{V}_{ij}\subseteq\mathcal{T}_i$
+be the teams with a recorded $d_{ijt}$ and a positive, finite value
+$m_{it}^{(j)}$.
+
+We use the following \emph{minutes-weighted mean of stint differences}
+for the season-level first and second predictors:
+\begin{equation}
+ \boxed{
+ X_{ij}=\frac{\displaystyle\sum_{t\in\mathcal{V}_{ij}}
+ m_{it}^{(j)}d_{ijt}}{
+ \displaystyle\sum_{t\in\mathcal{V}_{ij}}m_{it}^{(j)}}
+ },\qquad j\in\{1,2\}.
+ \label{eq:multi-team-aggregation}
+\end{equation}
+If $\mathcal{V}_{ij}$ is empty, $X_{ij}$ is missing rather than zero.
+A team record with no ON minutes or no valid ON/OFF difference receives
+no weight. A single valid team stint retains its original difference.
+The same calculation is carried out separately for $j=1$ and $j=2$;
+thus the eligible team sets may differ if one source has a missing value.
+
+This rule was implemented by our aggregation script,
+\texttt{aggregate\_gravity\_on\_off.py}.
+Its output, \texttt{player\_on\_off\_aggregated.csv}, has
+602 unique players; 582 have valid aggregated values
+for each of the two factors, including \textbf{all 234} official GRAV players.
+
+A diagnostic also compared the NBA's reported ON minutes in the two source
+files. Of 661 player--team pairs with both minute values, 646 differ by
+more than 0.01 minutes; the median absolute difference was 0.2433 minutes,
+the maximum 0.5 minutes, and the median relative difference 0.0321\%.
+These small differences are \emph{consistent with} distinct reporting
+precision (for example, whole minutes versus fractional minutes), rather
+than substantive differences in exposure. Each predictor uses minutes
+from its own source file, as specified in Equation~\eqref{eq:multi-team-aggregation}.
+
+This rule is a reproducible player-level \emph{summary}, not an exact
+season-long on/off statistic. In particular, averaging stint differences
+is not identical to recomputing overall eFG from pooled shot totals or
+overall offensive rating from pooled points and possessions. The source
+OFF-court figures may also include games outside the player's tenure
+with a particular team. Minutes weighting alone cannot remove these
+contextual limitations. The raw player--team records were retained.
+Alternative aggregation methods remain a possible sensitivity analysis.
+Of 234 official GRAV players, 24 have multiple recorded team stints.
+No regression is implied by this aggregation.
+
+\section{Final merged player-level dataset and quality checks}
+The integration was executed using
+\texttt{merge\_gravity\_model\_data.py}. Starting from the 234-row official
+GRAV file, the script performed player-ID one-to-one left joins with
+the already-aggregated ON/OFF file, per-game player stats, timeout rates,
+qualifying clutch rates, and OWS data. It did not merge the original
+701-row player--team files directly, fill missing values, or fit a model.
+The saved result is \textbf{\texttt{data/processed/player\_gravity\_model\_data.csv}}.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{0.39\linewidth}p{0.31\linewidth}X@{}}
+\toprule
+\textbf{Column} & \textbf{Role / units} & \textbf{GRAV coverage}\\
+\midrule
+\texttt{PLAYER\_ID}, \texttt{PLAYER\_NAME} & Identifying variables & 234/234\\
+\texttt{GRAV} & Response $Y_i$ (official NBA Gravity) & 234/234\\
+\texttt{OFF\_RATING\_DIFF} & $X_{i1}$; points per 100 possessions & 234/234\\
+\texttt{EFG\_DIFF\_PP} & $X_{i2}$; percentage points & 234/234\\
+\texttt{AST\_PER\_GAME} & $X_{i3}$; assists/game & 234/234\\
+\texttt{TIMEOUTS\_PER\_36} & $X_{i4}$; responses/36 season minutes & 234/234\\
+\texttt{CLUTCH\_PTS\_PER\_36} & $X_{i5}$; points/36 clutch minutes & 175/234\\
+\texttt{OWS} & $X_{i6}$; offensive win-share estimate & 234/234\\
+\texttt{ALL\_SIX\_AVAILABLE} & Completeness indicator (Boolean) & 175 \texttt{True}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+For each player $i$, the completeness flag is
+\begin{equation}
+ C_i=\begin{cases}
+ 1,&\text{if }X_{ij}\text{ is observed for every }j=1,\ldots,6,\\
+ 0,&\text{otherwise}.
+ \end{cases}
+ \label{eq:complete-case}
+\end{equation}
+The CSV column \texttt{ALL\_SIX\_AVAILABLE} stores this flag as
+\texttt{True} or \texttt{False}. The script verified unique player IDs and
+retained all 234 target rows. Its final console validation reported
+\textbf{175 players with six observed predictors} and \textbf{59 missing
+at least one factor}. In this dataset the missing factor for those 59
+players is clutch scoring. The complete-case sample is
+$\mathcal C=\{i:C_i=1\}$, with $|\mathcal C|=175$. The complete-case share
+is $175/234\approx74.8\%$.
+
+\textbf{Important interpretation:} a missing clutch measurement means
+the player does not meet our qualifying data rule; it does \emph{not}
+mean the player's clutch scoring rate is zero. The 175-player regression
+sample would exclude these 59 players, so test results may not generalize
+to all 234 players on the NBA GRAV leaderboard.
+
+\textbf{Sharing and reproducibility:} The model CSV exists locally in
+\texttt{data/processed/}. For this report, we assume all group members have
+access to the shared GitHub repository and the required project files.
+This access assumption was provided by the group and was not independently
+tested here. The collection checkpoints are not needed to fit the
+already-assembled player-level CSV. If any scripts are rerun after file
+reorganization, their input/output paths should be checked first.
+
+\section{Constructing an interpretable gravity model}
+\textbf{Primary method:} Multiple linear regression with six predictors.
+\textbf{Benchmark:} An equally weighted index of those same standardized predictors.
+The first model fit and held-out evaluation are complete and reported
+below alongside five-fold cross-validation results. The substantial
+fold-to-fold variability means these results do not establish stable
+generalization.
+
+\subsection{Standardization}
+The six indicators have different units. For player $i$ and predictor $j$,
+\begin{equation}
+Z_{ij}=\frac{X_{ij}-\mu_j^{\mathrm{train}}}{s_j^{\mathrm{train}}},
+\qquad s_j^{\mathrm{train}}>0.
+\label{eq:zscore}
+\end{equation}
+Means and standard deviations must be computed \emph{only on training players}
+and then applied unchanged to held-out players. Any orientation changes, missing
+value rules, and zero-variance exclusions must be declared in advance.
+
+\subsection{Equal-weight benchmark}
+Given an agreed orientation for every predictor, define the index
+\begin{equation}
+Q_i=\frac{1}{6}\sum_{j=1}^{6}Z_{ij}.
+\label{eq:equal}
+\end{equation}
+$Q_i$ is a dimensionless score. It can be compared with NBA ranks using Spearman
+correlation. For a fair MAE comparison on the NBA GRAV scale, a training-only
+calibration such as $\widehat Y_i^{\mathrm{equal}}=a+bQ_i$ would be needed.
+
+\subsection{Multiple linear regression}
+Our candidate model is
+\begin{equation}
+Y_i=\beta_0+\sum_{j=1}^{6}\beta_j Z_{ij}+\varepsilon_i,
+\qquad
+\widehat Y_i=\widehat\beta_0+\sum_{j=1}^{6}\widehat\beta_j Z_{ij}.
+\label{eq:ols}
+\end{equation}
+For training-player index set $\mathcal T$, ordinary least squares minimizes
+\begin{equation}
+\underset{\beta_0,\boldsymbol\beta}{\operatorname{arg\,min}}
+\sum_{i\in\mathcal T}
+\left(Y_i-\beta_0-\sum_{j=1}^{6}\beta_jZ_{ij}\right)^2.
+\label{eq:least-squares}
+\end{equation}
+For a full-column-rank training design matrix $X$ including the intercept,
+the normal equations are
+\begin{equation}
+X^{\mathsf T}X\widehat{\boldsymbol\theta}=X^{\mathsf T}\mathbf Y,
+\qquad
+\widehat{\boldsymbol\theta}=(X^{\mathsf T}X)^{-1}X^{\mathsf T}\mathbf Y,
+\label{eq:normal}
+\end{equation}
+where $\boldsymbol\theta$ includes the intercept and six coefficients.
+If the matrix is not full rank, numerical least-squares or a pseudoinverse is
+required instead of the simple inverse formula. A negative coefficient is
+possible and should be interpreted, not silently forced positive. Neither a
+coefficient nor a strong association proves causation.
+
+\section{Completed validation and preliminary model evaluation}
+\label{sec:model-evaluation}
+\textbf{Data preparation checks already completed:}
+\begin{enumerate}
+\item \textbf{Consistent season and player keys.} All six factors concern
+the 2025--26 regular season. The official GRAV data supply exactly 234
+unique player IDs; the merge retains all 234 without duplicate IDs.
+\item \textbf{Traded-player aggregation.} The 701-row ON/OFF sources were
+combined into player-level factors by ON-minutes-weighted team-stint
+differences, with individual factor-specific weights. The check found
+24 multi-team players among the official GRAV sample; both resulting
+ON/OFF factors are present for all 234 GRAV players.
+\item \textbf{Complete-case verification.} Exactly 175 of 234 GRAV players
+have all six predictors; the 59 incomplete cases lack qualifying clutch
+data under the 30-minute rule. No missing values were imputed.
+\end{enumerate}
+
+\textbf{Modeling and evaluation:}
+\begin{enumerate}
+\item \textbf{Split by player before fitting.} We used an 80\% training /
+20\% test split of the 175 complete players: 140 training players and
+35 held-out players. The split used NumPy's default random generator with
+seed 440. The held-out set was kept separate from model fitting and
+cross-validation.
+\item \textbf{Keep the test set unseen.} Standardization means and
+population standard deviations were computed on training players only
+and then applied unchanged to held-out players. Coefficients were fit
+without using held-out GRAV scores.
+\item \textbf{Fit multiple linear regression by ordinary least squares.}
+The six-predictor model was fitted by numerically stable least squares.
+For standardized predictors $Z_{ij}$, the fitted equation is
+\begin{align}
+\widehat Y_i={}&1.5243929543
+-0.0232279793Z_{i1}
++0.6215652779Z_{i2}
++0.0428099387Z_{i3}
++1.8882029307Z_{i4}\notag\\
+&+2.3815304922Z_{i5}
+-0.9446153351Z_{i6}.
+\label{eq:fitted-ols}
+\end{align}
+Predictors $Z_{i1},\ldots,Z_{i6}$ correspond, in order, to
+\texttt{OFF\_RATING\_DIFF}, \texttt{EFG\_DIFF\_PP},
+\texttt{AST\_PER\_GAME}, \texttt{TIMEOUTS\_PER\_36},
+\texttt{CLUTCH\_PTS\_PER\_36}, and \texttt{OWS}. Each predictor is
+standardized using its training-set mean and population standard deviation.
+\item \textbf{Evaluate prediction accuracy.} For $m$ held-out players,
+\begin{equation}
+ \mathrm{MAE}=\frac{1}{m}\sum_{i=1}^{m}|Y_i-\widehat Y_i|.
+ \label{eq:mae}
+\end{equation}
+A complementary test-set $R^2$ compares predictions with a reference
+mean; held-out $R^2$ can be negative. On this 35-player test set, OLS
+achieved MAE $2.8560475861$ GRAV points and $R^2=0.3734245141$.
+\item \textbf{Evaluate ranking agreement.} Spearman's rank correlation
+$\rho_s$ compares predicted and official GRAV rankings. Without ties,
+\begin{equation}
+\rho_s=1-\frac{6\sum_{i=1}^{m}d_i^2}{m(m^2-1)},
+\label{eq:spearman}
+\end{equation}
+where $d_i$ is the difference between a player's predicted and official
+rank. With ties, compute the Pearson correlation between the two sets
+of assigned ranks. The held-out OLS Spearman correlation was
+$\rho_s=0.5753501401$.
+\item \textbf{Assess training-sample stability.} We performed shuffled
+five-fold cross-validation on the 140 training players using seed 440.
+Each fold used 112 players for fitting and 28 for validation; predictor
+standardization was recomputed from that fold's 112 training players.
+Across the five validation folds, the mean and sample standard deviation
+were MAE $3.2905\pm0.2153$, test $R^2$ $0.2770\pm0.2887$, and Spearman
+$\rho_s$ $0.5300\pm0.2170$. The sizeable fold-to-fold variation,
+particularly in $R^2$ and rank correlation, indicates uncertainty in
+performance estimates. These fold results use only the 140-player
+training set; the 35-player test set remains held out.
+\item \textbf{Compare simple baselines.} We compared OLS against the
+standardized equal-weight index and single-predictor models. The
+equal-weight index was calibrated to GRAV using training players only.
+The best single-predictor baseline used clutch points per 36 minutes.
+Held-out results were:
+\begin{center}
+\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Model} & \textbf{MAE} & \textbf{Test $R^2$} & \textbf{Spearman $\rho_s$}\\
+\midrule
+Six-predictor OLS & 2.8560475861 & 0.3734245141 & 0.5753501401\\
+Calibrated equal-weight index & 2.8927238477 & 0.3509312110 & 0.4759103641\\
+Clutch points/36 only & 2.8589605185 & 0.2921527789 & 0.4893557428\\
+\bottomrule
+\end{tabular}
+\end{center}
+OLS was slightly better than the equal-weight benchmark on this particular
+split. The 35-player test set is small, and this single split does not
+establish that OLS will consistently outperform the benchmark.
+\end{enumerate}
+
+\textbf{Reproducibility.} The model is implemented in
+\texttt{src/models/train.py} and can be run from the project root with
+\texttt{.venv/bin/python src/models/train.py}. The script uses the merged
+CSV, seed 440, and a 20\% test fraction by default. Its run also reports
+single-predictor baselines. The cross-validation summarizes variation
+within the training sample; it does not replace the held-out test
+evaluation or establish performance on a new season.
+
+\textbf{Interpretation:} Even accurate held-out predictions would not
+reconstruct the NBA's tracking algorithm or show that the six predictor
+variables causally create defensive attention.
+
+\section{Presentation outline: October 22, 2 p.m.}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}cp{0.36\linewidth}Xc@{}}
+\toprule
+\textbf{Slide} & \textbf{Topic} & \textbf{What to show} & \textbf{Time}\\
+\midrule
+1 & Gravity and research question & NBA definition; why public proxies are interesting & 1:00\\
+2 & Six-factor methodology & Six measured predictors, one deferred, merged CSV & 1:15\\
+3 & Mathematical definitions & OffRtg, teammate-only eFG, assists, timeouts, clutch rate, OWS & 2:00\\
+4 & Mathematical model & Standardization, OLS objective, equal-weight baseline & 2:00\\
+5 & Verified data and model evaluation & 234 merged, 175 complete; held-out and five-fold CV results & 2:00\\
+6 & Caveats and next steps & Clutch selection, traded-player proxies, noncausality & 1:15\\
+\midrule
+ & \textbf{Target total} & & \textbf{9:30}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{Presentation rule:} Distinguish the single 35-player held-out
+results from five-fold cross-validation on the training players. The
+fold variation is substantial; do not claim reliable superiority over
+the benchmark or imply causal effects.
+\textbf{Slide-deck review:} The linked Google Slides deck was inspected in
+view-only mode and is not yet aligned with this report. It still presents
+open-shot percentage as P1 despite that factor being deferred for lack of
+tracking data, and a brainstorming slide proposes Random Forest although
+the agreed model is six-predictor OLS. Update these slides before presenting.
+
+\section{Collaboration and remaining responsibilities}
+Josue completed the recent acquisition and preparation of the six candidate
+factor datasets, the official Gravity target, the traded-player ON/OFF
+aggregation, and the final player-level merge. The data audit and this mathematical documentation were prepared to
+support the next presentation. An initial six-predictor OLS model has now
+been fit and evaluated on one held-out split and by five-fold
+cross-validation within the training sample. The results should be
+discussed with the group and presented as preliminary. The linked slide
+deck was reviewed in view-only mode; an editor with edit access must bring
+its hypotheses, variables, and model choice into agreement with this report.
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{0.24\linewidth}Xp{0.19\linewidth}@{}}
+\toprule
+\textbf{Workstream} & \textbf{Deliverable} & \textbf{Status}\\
+\midrule
+Data acquisition & Six candidate predictors plus 234 official GRAV scores & Completed\\
+Data integration & Aggregated ON/OFF; checked OWS IDs; merged 234 players, 175 complete & Completed\\
+Mathematical modeling & Fit OLS with six predictors; evaluate held-out prediction and ranks & Held-out and five-fold CV completed; interpret cautiously\\
+Presentation and report & Present verified model results with limitations & Report updated; slide deck needs substantive alignment\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Updated decisions and immediate checklist}
+\begin{enumerate}
+\item[$\boxtimes$] Choose the 2025--26 NBA regular season.
+\item[$\boxtimes$] Collect six candidate predictors; defer open-shot data.
+\item[$\boxtimes$] Define and calculate opponent timeout responses per 36
+season minutes from 1,230 NBA games.
+\item[$\boxtimes$] Calculate teammates-only ON/OFF eFG, excluding focal-player
+shot attempts from the ON group.
+\item[$\boxtimes$] Obtain published \emph{Offensive} Win Shares from
+Basketball-Reference and match to NBA player IDs (582 players; 234/234 GRAV matches).
+\item[$\boxtimes$] Confirm \texttt{AST} is assists per game; preserve it as
+\texttt{AST\_PER\_GAME}.
+\item[$\boxtimes$] Extract 234 official numerical GRAV scores from
+\texttt{GravityLeaders}, using \texttt{AVGGRAVITYSCORE}.
+\item[$\boxtimes$] Aggregate multi-team ON/OFF stints by factor-specific
+ON minutes; verify 602 player rows and all 234 GRAV matches.
+\item[$\boxtimes$] Check source-minute precision: maximum discrepancy
+0.5 minute; use each factor's own source minutes.
+\item[$\boxtimes$] Merge all six factors into
+\texttt{data/processed/player\_gravity\_model\_data.csv}; verify 234 rows
+with 175 six-factor-complete players and 59 lacking clutch data.
+\item[$\boxtimes$] Retain P1--P6 in predictor order, with open-shot P7
+(TBD) and ranking agreement P8.
+\item[$\boxtimes$] Assume all group members can access the merged CSV and
+project files through the shared repository, as confirmed by the group.
+\item[$\boxtimes$] Fit and evaluate an initial six-predictor OLS model;
+record the fitted formula, seed, sample split and held-out results.
+\item[$\boxtimes$] Run five-fold cross-validation on the training players,
+restandardizing within each fold; report fold means and variability.
+\item[$\square$] Revise the linked presentation: defer open-shot P1 until
+tracking data exist, remove Random Forest brainstorming, and add the agreed
+six-factor OLS method plus held-out and five-fold CV results.
+\item[$\square$] Finalize the presentation and its verified findings.
+\end{enumerate}
+
+\textbf{Mathematical-report requirement:} All definitions, units,
+assumptions, and selection rules must remain explicit. The reported
+preliminary fit includes its numerical coefficients and held-out
+evaluation measures. Add accurate textbook editions/page references for
+least squares, standardization and rank correlation before final submission.
+
+\begin{thebibliography}{9}
+\bibitem{nba-gravity-intro}
+NBA.com Staff, ``Intro to Gravity,'' updated January 8, 2026. \\
+\url{https://www.nba.com/news/intro-to-gravity-stat-nba-2025}
+
+\bibitem{nba-gravity-board}
+NBA, ``Inside The Game: Player Gravity Leaders.'' \\
+\url{https://www.nba.com/inside-the-game/player/gravity?Season=2025-26&SeasonType=Regular+Season}
+
+\bibitem{nba-gravity-api}
+NBA Stats, \emph{GravityLeaders} endpoint, 2025--26 regular-season player
+gravity data, retrieved using the Python \texttt{nba\_api} package.
+\url{https://stats.nba.com/stats/gravityleaders}
+
+\bibitem{nba-glossary}
+NBA, ``Stats Glossary'' (entries for OffRtg and eFG\%). \\
+\url{https://www.nba.com/stats/help/glossary}
+
+\bibitem{winshares}
+Basketball-Reference, ``NBA Win Shares,'' methodology, especially Section III
+(``Crediting Offensive Win Shares to Players''). \\
+\url{https://www.basketball-reference.com/about/ws.html}
+
+\bibitem{br-advanced}
+Basketball-Reference, ``2025--26 NBA Advanced Stats,'' player-level OWS
+column used in the exported and NBA-ID-matched 2025--26 dataset. \\
+\url{https://www.basketball-reference.com/leagues/NBA_2026_advanced.html}
+\end{thebibliography}
+
+\section*{Shared decision log (updated October 22)}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{0.29\linewidth}Xp{0.20\linewidth}@{}}
+\toprule
+\textbf{Question} & \textbf{Current decision / evidence} & \textbf{Status}\\
+\midrule
+Which factors enter v1? & OffRtg, teammate eFG, assists/game, timeouts/36, clutch points/36, OWS. Open-shot tracking remains deferred. & Six measured\\
+What is the target? & Official numerical NBA GRAV (\texttt{AVGGRAVITYSCORE}); 234 distinct players. & Collected\\
+Have trades been handled? & Separate ON-minutes-weighted factor 1 and 2 means across team stints, with verified source-minute precision. & Completed\\
+Has the dataset been merged? & \texttt{player\_gravity\_model\_data.csv}: 234 rows, 175 fully observed, 59 without qualifying clutch. & Completed locally\\
+How are weights chosen? & Six-variable OLS; seed-440 split gave 140 training and 35 held-out players. Held-out OLS MAE 2.8560, $R^2=0.3734$, Spearman 0.5754; five-fold training CV MAE $3.2905\pm0.2153$, $R^2$ $0.2770\pm0.2887$, Spearman $0.5300\pm0.2170$. & Preliminary; fold variability\\
+Can teammates read the data? & Group confirms all members have access to the shared GitHub repository and required files; not independently tested here. & Assumed\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Revision note (October 22, 2026, v0.7).} This version updates
+the previous planning draft to reflect completed traded-player aggregation,
+minute-discrepancy inspection, confirmed per-game assists, verified
+Basketball-Reference OWS provenance and matching, creation of the final
+merged 234-player CSV, an initial six-predictor OLS fit, and five-fold
+cross-validation on the training sample. Held-out and cross-validation
+results show fold-to-fold variability and remain preliminary; the linked
+presentation remains out of sync: it presents open-shot P1 and Random
+Forest brainstorming instead of the agreed OLS model. Slide updates remain
+outstanding.
+
+\end{document}

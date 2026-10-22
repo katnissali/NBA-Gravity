@@ -5,6 +5,7 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 .env
+draft-preview.pdf
 data/raw/*
 data/processed/*
 !data/raw/.gitkeep
