@@ -212,6 +212,11 @@ The \textbf{first predictor} is
 Its unit is \emph{team points per 100 possessions}. A positive difference
 means the observed team OffRtg is higher with player $i$ present; it does
 not establish the player's causal contribution.
+\textbf{Why it might help predict gravity:} A higher team offensive rating
+with the player on court may be consistent with that player's presence
+coinciding with better team offense. It is only an indirect signal: the
+difference can also reflect teammates, opponents, and lineup context, and
+does not isolate defensive attention.
 
 \subsection{Factor 2: Teammates-only eFG\% ON/OFF}
 \textbf{Effective field-goal percentage (eFG)} adjusts field-goal accuracy
@@ -264,6 +269,11 @@ $X_{i2}$ is measured in \emph{percentage points}. For example, a difference
 of 0.04 between the underlying eFG proportions corresponds to 4 percentage
 points, not a 4\% relative increase. The calculation excludes the focal
 player's shooting contribution from the ON value.
+\textbf{Why it might help predict gravity:} If teammates have better
+shooting efficiency when the player is on court, that pattern may be
+consistent with the player helping create favorable offensive conditions.
+eFG does not identify whether shots were open or attribute the difference
+to the player's gravity.
 
 \subsection{Factor 3: Assists}
 An \textbf{assist} is a credited pass leading directly to a teammate's made
@@ -280,6 +290,11 @@ Thus $X_{i3}$ is the player's season-average assists per game, with unit
 players with more playing time per game. The merged file preserves the
 source's per-game representation under the column \texttt{AST\_PER\_GAME};
 we do not divide it by games a second time or convert it to per 36 minutes.
+\textbf{Why it might help predict gravity:} Assists may capture playmaking
+that helps teammates convert scoring opportunities, so they may be
+associated with offensive value relevant to gravity. They also reflect
+passing skill and playing time, and are not a direct measure of defensive
+attention.
 
 \subsection{Factor 4: Opponent timeout responses}
 We define one \textbf{timeout response} for player $i$ when an opposing
@@ -297,6 +312,11 @@ The project analyzed all 1,230 regular-season games using
 \texttt{PlayByPlayV3} and season-total player minutes. The definition
 records event order, not evidence that the player's basket caused the
 timeout.
+\textbf{Why it might help predict gravity:} An opponent's immediate
+timeout following a made basket may sometimes reflect a desire to disrupt
+the player's team's offense or respond to scoring pressure. This event is
+noisy and can be driven by game situation or coaching decisions; it cannot
+show that the player caused the timeout or attracted extra defenders.
 
 \subsection{Factor 5: Individual clutch scoring rate}
 The NBA's standard \textbf{clutch} condition is the final five minutes
@@ -318,6 +338,11 @@ clutch values are retained as missing, not interpreted as zero points.
 Selecting players with 30 or more clutch minutes may also introduce
 sample-selection bias, because such players have had more opportunities
 to appear in close games.
+\textbf{Why it might help predict gravity:} Clutch scoring rate may reflect
+an ability to produce offense in high-pressure situations, and a strong
+scoring threat could be relevant to defensive attention. It measures
+individual scoring, not attention drawn from defenders, and the qualifying
+minutes rule limits which players have observed values.
 
 \subsection{Factor 6: Offensive Win Shares}
 \textbf{Offensive Win Shares (OWS)} is a published Basketball-Reference
@@ -382,6 +407,11 @@ OWS is a \emph{cumulative} estimate; higher values can reflect both stronger
 offensive contribution and more playing time. It is a proposed correlate
 of gravity rather than a direct tracking measurement of defensive
 attention or a demonstrated causal factor.
+\textbf{Why it might help predict gravity:} OWS summarizes season-long
+offensive contribution, which may be associated with the offensive value
+of a player who also attracts defensive attention. Because it is cumulative
+and reflects playing time as well as contribution, any association with
+GRAV would not show that OWS measures gravity itself.
 
 \subsection{Factor 7: Teammate open-shot percentage (TBD)}
 This proposed seventh factor has not been collected. ``Open-shot
@@ -540,16 +570,50 @@ below alongside five-fold cross-validation results. The substantial
 fold-to-fold variability means these results do not establish stable
 generalization.
 
+\textbf{Why these models and predictors:} The outcome is the continuous
+official GRAV score, so ordinary least squares (OLS) provides a direct way
+to estimate that score from the six candidate indicators while keeping the
+contribution associated with each indicator visible in the fitted
+coefficients. We use a linear model as an interpretable first model, not
+because a linear relationship or causal effect is known to hold. The six
+predictors were selected as measurable, available indicators spanning
+team offense with the player on/off the court, teammates' shooting, assists,
+opponent timeout responses, clutch scoring, and Offensive Win Shares.
+They are proxies rather than direct measures of defensive attention; the
+proposed open-shot measure is deferred because suitable data and a settled
+definition are not yet available. The equally weighted index is a simple,
+transparent reference for checking whether fitting OLS weights improves
+on assigning every standardized indicator the same weight. Single-predictor
+baselines show how the combined model compares with using one indicator
+alone. We report both score error (MAE and $R^2$) and rank association
+(Spearman) because the analysis considers both predicting GRAV values and
+ordering players. Standardization puts predictors measured in different
+units on a common scale and is fit on training data only to avoid using
+held-out information.
+
 \subsection{Standardization}
-The six indicators have different units. For player $i$ and predictor $j$,
+Standardization subtracts a predictor's training-sample mean and divides by
+its training-sample standard deviation, putting it on a common scale with
+training mean zero and standard deviation one. This is useful because the
+predictors use different units, makes each regression coefficient refer to
+a one-standard-deviation change, and lets the equal-weight benchmark give
+each predictor the same scale before averaging. Standardization is not
+required to fit OLS; it is a choice that makes the predictors and model
+comparisons easier to interpret.
+For player $i$ and predictor $j$,
 \begin{equation}
 Z_{ij}=\frac{X_{ij}-\mu_j^{\mathrm{train}}}{s_j^{\mathrm{train}}},
 \qquad s_j^{\mathrm{train}}>0.
 \label{eq:zscore}
 \end{equation}
-Means and standard deviations must be computed \emph{only on training players}
-and then applied unchanged to held-out players. Any orientation changes, missing
-value rules, and zero-variance exclusions must be declared in advance.
+The mean and standard deviation are computed \emph{only from the relevant
+training players} and then applied unchanged to validation or test players.
+Using held-out predictor values to choose this transformation would leak
+information about those samples into the modeling process and would not
+match how predictions for genuinely unseen players are made. In each
+cross-validation fold, the transformation is therefore refit on that
+fold's training subset. Any orientation changes, missing value rules, and
+zero-variance exclusions must be declared in advance.
 
 \subsection{Equal-weight benchmark}
 Given an agreed orientation for every predictor, define the index
@@ -569,6 +633,16 @@ Y_i=\beta_0+\sum_{j=1}^{6}\beta_j Z_{ij}+\varepsilon_i,
 \widehat Y_i=\widehat\beta_0+\sum_{j=1}^{6}\widehat\beta_j Z_{ij}.
 \label{eq:ols}
 \end{equation}
+Because each $Z_{ij}$ is standardized, $\beta_j$ represents the model's
+predicted change in GRAV points associated with a one-standard-deviation
+increase in predictor $j$, \emph{holding the other five predictors
+constant}. A positive coefficient means that higher values of that
+predictor correspond to a higher predicted GRAV score, conditional on the
+other predictors; a negative coefficient means a lower predicted score.
+These are conditional associations within the fitted model, not causal
+effects, and a coefficient's sign does not by itself show statistical
+significance or practical importance.
+
 For training-player index set $\mathcal T$, ordinary least squares minimizes
 \begin{equation}
 \underset{\beta_0,\boldsymbol\beta}{\operatorname{arg\,min}}
@@ -576,6 +650,12 @@ For training-player index set $\mathcal T$, ordinary least squares minimizes
 \left(Y_i-\beta_0-\sum_{j=1}^{6}\beta_jZ_{ij}\right)^2.
 \label{eq:least-squares}
 \end{equation}
+In words, OLS chooses the intercept and six coefficients that make the
+sum of squared differences between the observed training GRAV scores and
+the model's fitted scores as small as possible. Squaring makes positive
+and negative residuals unable to cancel and gives larger errors more
+weight. This criterion defines the fitted coefficients; it does not by
+itself guarantee good predictions on new players.
 For a full-column-rank training design matrix $X$ including the intercept,
 the normal equations are
 \begin{equation}
@@ -641,9 +721,12 @@ standardized using its training-set mean and population standard deviation.
  \mathrm{MAE}=\frac{1}{m}\sum_{i=1}^{m}|Y_i-\widehat Y_i|.
  \label{eq:mae}
 \end{equation}
-A complementary test-set $R^2$ compares predictions with a reference
-mean; held-out $R^2$ can be negative. On this 35-player test set, OLS
-achieved MAE $2.8560475861$ GRAV points and $R^2=0.3734245141$.
+A complementary test-set $R^2$ compares squared prediction error with
+the error from predicting the test-set mean GRAV for everyone; held-out
+$R^2$ can be negative. On this 35-player test set, OLS achieved MAE
+$2.8560475861$ GRAV points and $R^2=0.3734245141$, meaning its squared
+error was about 37.3\% lower than that mean-prediction reference on this
+test sample.
 \item \textbf{Evaluate ranking agreement.} Spearman's rank correlation
 $\rho_s$ compares predicted and official GRAV rankings. Without ties,
 \begin{equation}
@@ -658,12 +741,18 @@ $\rho_s=0.5753501401$.
 five-fold cross-validation on the 140 training players using seed 440.
 Each fold used 112 players for fitting and 28 for validation; predictor
 standardization was recomputed from that fold's 112 training players.
-Across the five validation folds, the mean and sample standard deviation
-were MAE $3.2905\pm0.2153$, test $R^2$ $0.2770\pm0.2887$, and Spearman
+Cross-validation re-fits and evaluates the model across several subsets
+of the training data, giving a view of how results vary with the
+particular training/validation split. Across the five validation folds,
+the reported mean $\pm$ sample standard deviation were MAE
+$3.2905\pm0.2153$, $R^2$ $0.2770\pm0.2887$, and Spearman
 $\rho_s$ $0.5300\pm0.2170$. The sizeable fold-to-fold variation,
 particularly in $R^2$ and rank correlation, indicates uncertainty in
-performance estimates. These fold results use only the 140-player
-training set; the 35-player test set remains held out.
+performance estimates. The standard deviation describes spread among
+these five fold results; it is not a confidence interval. These fold
+results use only the 140-player training set; the 35-player test set
+remains held out as a separate, one-time evaluation of the fitted
+training procedure.
 \item \textbf{Compare simple baselines.} We compared OLS against the
 standardized equal-weight index and single-predictor models. The
 equal-weight index was calibrated to GRAV using training players only.
@@ -732,11 +821,16 @@ These cross-validation summaries describe five validation subsets within
 the 140-player training sample. Separately, on the untouched 35-player
 test set, the model had MAE $2.8560$, $R^2=0.3734$, and
 $\rho_s=0.5754$. These are distinct evaluations, not additional folds
-to combine with the cross-validation averages. Both suggest some
-predictive and ranking signal in this sample, but the small test set and
-fold-to-fold variation mean the evidence is preliminary and does not
-establish reliable performance on future seasons. The model's associations
-also do not show that the predictors cause gravity.
+to combine with the cross-validation averages: cross-validation describes
+variation across training-sample splits, while the test metrics describe
+one untouched set not used to fit the reported model. The results support
+a preliminary predictive and ranking association between these six
+indicators and official GRAV in this dataset. They do not establish that
+OLS reliably generalizes or consistently outperforms simpler models:
+the test set has only 35 players, performance varies considerably across
+the five folds, the evaluation covers one season, and the complete-case
+sample excludes 59 GRAV players without qualifying clutch data. The
+model's associations also do not show that the predictors cause gravity.
 
 \section{Presentation outline: October 22, 2 p.m.}
 \begin{center}
